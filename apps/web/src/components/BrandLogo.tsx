@@ -1,3 +1,4 @@
+import { useId } from "react";
 import clsx from "clsx";
 
 // Built-in logo presets. Inline SVGs so they ship without extra
@@ -106,7 +107,10 @@ interface PresetLogoProps {
 /** Inline SVG renderer for a logo preset id (e.g. "book"). */
 export function PresetLogo({ id, size = 36, className }: PresetLogoProps) {
   const preset = getLogoPresetById(id) ?? LOGO_PRESETS[0];
-  const gradId = `pl-logo-${preset.id}`;
+  // Per-instance gradient id so multiple PresetLogos on the same page
+  // (e.g. sidebar + Settings preview + the picker grid) don't collide.
+  const reactId = useId();
+  const gradId = `pl-logo-${preset.id}-${reactId.replace(/:/g, "")}`;
   return (
     <svg
       viewBox="0 0 64 64"
