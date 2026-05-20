@@ -68,7 +68,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     );
     root.setAttribute(
       "data-anim-shimmer",
-      animOn && (settings?.animBrandShimmer ?? true) ? "1" : "0",
+      animOn && (settings?.animBrandShimmer ?? false) ? "1" : "0",
     );
     const intensity = Math.max(0, Math.min(100, settings?.animIntensity ?? 100));
     root.style.setProperty("--pl-anim-scale", String(intensity / 100));

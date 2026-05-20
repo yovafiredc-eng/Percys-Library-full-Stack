@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { useToasts } from "../stores/toasts";
 import type { SettingsDto } from "../lib/api";
 import { Avatar, AvatarPresetGrid } from "../components/AvatarPresets";
+import { BrandLogo, LogoPresetGrid } from "../components/BrandLogo";
 import { ThemePicker } from "../components/ThemePicker";
 import { THEMES, type ThemePreset, getTheme } from "../lib/themes";
 import { getInitials } from "../lib/profile";
@@ -77,6 +78,7 @@ const ACCENT_PALETTE = [
 
 const SECTIONS: { id: string; label: string; hint: string; icon: React.ReactNode }[] = [
   { id: "profile", label: "Perfil", hint: "Avatar y nombre", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
+  { id: "branding", label: "Branding", hint: "Logo y nombre de la biblioteca", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12h8M12 8v8"/></svg> },
   { id: "appearance", label: "Apariencia", hint: "Tema, acento y tipografía", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> },
   { id: "animations", label: "Animaciones", hint: "Movimiento y transiciones", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> },
   { id: "library", label: "Biblioteca", hint: "Vista, orden y portadas", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg> },
@@ -257,17 +259,17 @@ export function Settings() {
     return { ...theme, fg, text1, text2, text3, border };
   }
 
-  async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPickLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 250_000) {
-      push("La imagen es demasiado grande (máx. 250KB)", "error");
+      push("El logo es demasiado grande (máx. 250KB)", "error");
       return;
     }
     try {
       const url = await fileToDataUrl(file);
-      await update({ avatar: url });
-      push("Avatar actualizado", "success");
+      await update({ libraryLogo: url });
+      push("Logo actualizado", "success");
     } catch {
       push("No se pudo leer la imagen", "error");
     } finally {
@@ -463,25 +465,9 @@ export function Settings() {
                         value={settingsView.avatar}
                         onChange={(v) => patch("avatar", v)}
                       />
-                      <div className="flex items-center gap-4">
-                        <label className="pl-btn !bg-white/5 border border-white/10 cursor-pointer text-xs font-bold hover:!bg-white/10">
-                          Subir personalizado
-                          <input
-                            type="file"
-                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                            className="hidden"
-                            onChange={onPickAvatar}
-                          />
-                        </label>
-                        {settingsView.avatar && (
-                          <button
-                            onClick={() => patch("avatar", null)}
-                            className="text-xs font-bold text-slate-500 hover:text-red-400 transition-colors"
-                          >
-                            Eliminar
-                          </button>
-                        )}
-                      </div>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        Elige uno de los presets — son ligeros, escalan a cualquier tamaño y se adaptan al acento del tema. Para personalizar la imagen de la biblioteca usa la sección <strong className="text-slate-300">Branding</strong>.
+                      </p>
                     </div>
                   </div>
                 </Field>
@@ -504,6 +490,84 @@ export function Settings() {
                     maxLength={40}
                     className="w-full rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-all shadow-inner"
                   />
+                </Field>
+              </div>
+              {manualMode && (
+                <SectionActions
+                  pendingCount={pendingCount}
+                  onApply={() => void applyPendingChanges()}
+                  onCancel={cancelPendingChanges}
+                />
+              )}
+            </Section>
+
+            {/* BRANDING ---------------------------------------------------------------
+                Customise the library name + logo (just like setting a
+                server icon + name in Discord). Persists in Settings so
+                it follows the user across devices. */}
+            <Section
+              id="branding"
+              active={activeSection}
+              title="Branding de la biblioteca"
+              icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12h8M12 8v8"/></svg>}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <Field label="Logo de la biblioteca">
+                  <div className="flex items-start gap-5">
+                    <div className="shrink-0">
+                      <BrandLogo
+                        value={settingsView.libraryLogo}
+                        size={88}
+                        rounded="2xl"
+                        className="ring-1 ring-white/10 shadow-2xl"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-4">
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        Personaliza el icono que aparece en la barra lateral y como favicon del navegador. Sube tu propio PNG / JPG / SVG (máx. 250&nbsp;KB) o elige uno de los presets.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <label className="pl-btn !bg-white/5 border border-white/10 cursor-pointer text-xs font-bold hover:!bg-white/10">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                          Subir imagen
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                            className="hidden"
+                            onChange={onPickLogo}
+                          />
+                        </label>
+                        {settingsView.libraryLogo && (
+                          <button
+                            onClick={() => patch("libraryLogo", null)}
+                            className="text-xs font-bold text-slate-500 hover:text-red-400 transition-colors"
+                          >
+                            Restaurar por defecto
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Presets</div>
+                    <LogoPresetGrid
+                      value={settingsView.libraryLogo}
+                      onChange={(v) => patch("libraryLogo", v)}
+                    />
+                  </div>
+                </Field>
+
+                <Field label="Nombre de la biblioteca">
+                  <input
+                    value={settingsView.libraryName ?? ""}
+                    onChange={(e) => void patch("libraryName", e.target.value)}
+                    placeholder="Percy's Library"
+                    maxLength={40}
+                    className="w-full rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-colors shadow-inner"
+                  />
+                  <p className="mt-2 text-[11px] text-slate-500">
+                    Aparece en la barra lateral. Déjalo vacío para usar el nombre por defecto.
+                  </p>
                 </Field>
               </div>
               {manualMode && (

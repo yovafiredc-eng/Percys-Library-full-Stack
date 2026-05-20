@@ -15,9 +15,6 @@ import { CategoryPicker } from "../components/CategoryPicker";
 import { ImportProgressOverlay, type ImportPhase } from "../components/library/ImportProgressOverlay";
 import { ContinueReadingHero } from "../components/ContinueReadingHero";
 import { VirtualGrid } from "../components/VirtualGrid";
-import { AdvancedSearch } from "../components/AdvancedSearch";
-import { ReadingStatistics } from "../components/ReadingStatistics";
-import { ThemeModeToggle } from "../components/ThemeModeToggle";
 import { collectAvailableCategoryNames } from "../lib/category-names";
 import { getDisplayName, getInitials } from "../lib/profile";
 import { pruneSelectionToVisible } from "../lib/selection";
@@ -76,8 +73,6 @@ export function Library({ scope = "all" }: Props) {
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [categoryPickerComicId, setCategoryPickerComicId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [showStats, setShowStats] = useState(false);
   useEffect(() => {
     setSelectMode(false);
     setDeleteConfirmOpen(false);
@@ -568,37 +563,29 @@ export function Library({ scope = "all" }: Props) {
           />
           {/* While the user is gestionar-ing, hide import to keep
               the header focused on selection. The centralised toolbar at
-              the bottom owns every management action in that state. */}
+              the bottom owns every management action in that state.
+              We deliberately keep only the two import buttons here —
+              the previous header had a duplicated search icon (the page
+              already has a search bar), a mini-stats toggle (Stats has
+              its own dedicated page) and a theme toggle (lives in
+              Settings), which made the bar look saturated. */}
           {!selectMode && (
             <div className="flex items-center gap-1">
               <button
-                onClick={() => { clickSound(); setSearchOpen(!searchOpen); }}
-                className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.06] transition-all"
-                title="Búsqueda avanzada"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              </button>
-              <button
-                onClick={() => { clickSound(); setShowStats(!showStats); }}
-                className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.06] transition-all"
-                title="Estadísticas"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-              </button>
-              <ThemeModeToggle />
-              <button
                 onClick={() => { clickSound(); fileInputRef.current?.click(); }}
                 disabled={uploading}
-                className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.06] transition-all"
+                className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"
                 title="Importar archivos"
+                aria-label="Importar archivos"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </button>
               <button
                 onClick={() => { clickSound(); folderInputRef.current?.click(); }}
                 disabled={uploading}
-                className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.06] transition-all"
+                className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"
                 title="Importar carpeta"
+                aria-label="Importar carpeta"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
               </button>
@@ -616,19 +603,6 @@ export function Library({ scope = "all" }: Props) {
           </button>
         </div>
       </header>
-       {/* Advanced Search Panel */}
-       <AdvancedSearch 
-         comics={comics} 
-         isOpen={searchOpen} 
-         onClose={() => setSearchOpen(false)}
-       />
-
-       {/* Reading Statistics Panel */}
-       {showStats && (
-         <div className="px-6 pb-4 relative z-10 border-b border-white/5">
-           <ReadingStatistics comics={comics} />
-         </div>
-       )}
        {showReturningBanner && settings?.hasOnboarded && (
         <div className="mx-8 mb-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
           <div className="flex items-center justify-between gap-3">
@@ -825,10 +799,6 @@ export function Library({ scope = "all" }: Props) {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                 Importar carpeta
               </button>
-              <Link to="/online-library" className="pl-btn flex items-center gap-2">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20"/></svg>
-                Buscar online
-              </Link>
             </div>
             <p className="mt-6 text-[11px] text-slate-600 font-medium">
               También puedes arrastrar y soltar archivos directamente aquí
@@ -874,6 +844,10 @@ export function Library({ scope = "all" }: Props) {
                 onToggleSelect={(id) => toggleSelect(id)}
                 onTogglePending={togglePending}
                 isPending={isPending(comic.id)}
+                onOpenCategoryPicker={(id) => {
+                  setCategoryPickerComicId(id);
+                  setCategoryPickerOpen(true);
+                }}
               />
             )}
           />

@@ -1,7 +1,10 @@
 import clsx from "clsx";
 import { NavLink } from "react-router-dom";
 import { Avatar } from "./AvatarPresets";
+import { BrandLogo } from "./BrandLogo";
 import { useSettingsStore } from "../stores/settings";
+
+const DEFAULT_LIBRARY_NAME = "Percy's Library";
 
 const items: { to: string; label: string; icon: string; badge: string | null; preload?: () => Promise<void> }[] = [
   { to: "/", label: "Biblioteca", icon: "library", badge: null },
@@ -90,17 +93,22 @@ function Icon({ name }: { name: string }) {
 
 export function Sidebar() {
   const settings = useSettingsStore((s) => s.settings);
+  const libraryName = (settings?.libraryName?.trim() || DEFAULT_LIBRARY_NAME);
+  const libraryLogo = settings?.libraryLogo ?? null;
   return (
     <aside className="lg:w-72 md:w-20 shrink-0 border-r border-white/[0.08] bg-ink-900 backdrop-blur-xl px-5 py-6 hidden md:flex md:flex-col relative z-50 md:px-3 md:py-5 lg:px-5 lg:py-6 transition-all duration-300">
       <div className="px-2 pb-8">
         <div className="pl-brand text-2xl font-black tracking-tight flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0 ring-1 ring-white/20 overflow-hidden">
-            <img src="/logo.ico" alt="Percy's Library" className="h-full w-full object-cover" />
-          </div>
-          <span className="hidden lg:inline">Percy&apos;s Library</span>
+          <BrandLogo
+            value={libraryLogo}
+            size={36}
+            rounded="xl"
+            className="shrink-0 ring-1 ring-white/15 shadow-lg shadow-blue-500/10"
+          />
+          <span className="hidden lg:inline truncate" title={libraryName}>{libraryName}</span>
         </div>
         <div className="pl-brand-sub text-[10px] uppercase tracking-[0.3em] mt-2 font-semibold items-center gap-2 hidden lg:flex">
-          <span className="h-1 w-1 rounded-full bg-blue-500 animate-pulse"></span>
+          <span className="h-1 w-1 rounded-full bg-blue-500"></span>
           Archivo Digital
         </div>
       </div>
@@ -125,31 +133,35 @@ export function Sidebar() {
             onFocus={() => preloadRoute(item.to)}
             className={({ isActive }) =>
               clsx(
-                "group relative flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 overflow-hidden",
+                "group relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors duration-200 overflow-hidden",
                 isActive
-                  ? "bg-gradient-to-r from-blue-600/15 to-purple-600/5 text-blue-400 border border-blue-500/20 shadow-lg shadow-blue-500/10"
-                  : "text-slate-400 hover:bg-white/[0.06] hover:text-white border border-transparent hover:border-white/[0.08]"
+                  ? "bg-white/[0.06] text-white border border-white/10"
+                  : "text-slate-400 hover:bg-white/[0.04] hover:text-white border border-transparent"
               )
             }
           >
             {({ isActive }) => (
               <>
-                {/* Active indicator bar */}
+                {/* Subtle accent bar on the active item — replaces the
+                    pulsating glow + gradient stack we had before. */}
                 {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-gradient-to-b from-blue-400 to-purple-500 shadow-[0_0_12px_rgba(59,130,246,0.5)] animate-glow-pulse" />
+                  <div
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-full"
+                    style={{ background: "var(--pl-accent, #3b82f6)" }}
+                  />
                 )}
-                <span className={clsx(
-                  "transition-all duration-300 relative z-10",
-                  isActive ? "scale-110 text-blue-400" : "group-hover:scale-110 group-hover:text-white"
-                )}>
+                <span
+                  className={clsx(
+                    "transition-colors duration-200 relative z-10",
+                    isActive ? "text-white" : "group-hover:text-white",
+                  )}
+                  style={isActive ? { color: "var(--pl-accent, #3b82f6)" } : undefined}
+                >
                   <Icon name={item.icon} />
                 </span>
                 <span className="flex-1 relative z-10 hidden lg:inline">{item.label}</span>
                 {item.badge && (
                   <span className="text-xs relative z-10">{item.badge}</span>
-                )}
-                {isActive && (
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/5 to-transparent pointer-events-none" />
                 )}
               </>
             )}
