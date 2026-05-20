@@ -97,7 +97,11 @@ model Settings {
   animHoverParallax   Boolean @default(true)
   animHudFades        Boolean @default(true)
   animMicroInteractions Boolean @default(true)
-  animBrandShimmer    Boolean @default(true)
+  // Default OFF: the brand shimmer animation pulsed even when the user
+  // wasn't looking at the sidebar and contributed to the "saturated"
+  // feel users complained about. Users who want it can re-enable it
+  // from the Animations section in Settings.
+  animBrandShimmer    Boolean @default(false)
   animIntensity       Int     @default(100) // 0..100 — global speed/scale multiplier
 
   // Reader layout (continuous / webtoon)
@@ -119,6 +123,13 @@ model Settings {
   // Reader brightness / contrast (40–150, 100 = default)
   readerBrightness   Int     @default(100)
   readerContrast     Int     @default(100)
+
+  // Library branding — customisable like a Discord server icon + name.
+  // libraryName falls back to "Percy's Library" in the UI when empty.
+  // libraryLogo is either "preset:<id>" referencing a bundled SVG
+  // preset or a small data:image/* URI (≤256KB encoded).
+  libraryName        String  @default("")
+  libraryLogo        String?
 }
 
 model Bookmark {

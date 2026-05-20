@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import type { ComicSummary } from "../lib/api";
 import { api } from "../lib/api";
 import { CategoryBadge } from "./CategoryBadge";
-import { useTilt } from "../hooks/useTilt";
 
 interface Props {
   comic: ComicSummary;
@@ -15,6 +14,10 @@ interface Props {
   onToggleSelect?: (id: string) => void;
   onTogglePending?: (id: string) => void;
   isPending?: boolean;
+  /** Opens the category picker for this comic. When provided, an inline
+   *  "tag" affordance is rendered on hover so adding a comic to a
+   *  category never requires entering bulk-management mode. */
+  onOpenCategoryPicker?: (id: string) => void;
 }
 
 const sizeMap = {
@@ -32,13 +35,13 @@ export const CoverCard = memo(function CoverCard({
   onToggleSelect,
   onTogglePending,
   isPending = false,
+  onOpenCategoryPicker,
 }: Props) {
   const [coverState, setCoverState] = useState<"loading" | "ready" | "error">("loading");
   const [retry, setRetry] = useState(0);
   const retryTimerRef = useRef<number | null>(null);
   const progress = comic.pageCount > 0 ? Math.round((comic.currentPage / Math.max(1, comic.pageCount - 1)) * 100) : 0;
   const coverUrl = `${api.coverUrl(comic.id)}?v=${encodeURIComponent(comic.updatedAt)}${retry > 0 ? `&retry=${retry}` : ""}`;
-  const { ref: tiltRef, onMouseMove, onMouseLeave } = useTilt(6);
   const titleInitials = useMemo(
     () =>
       comic.title
@@ -96,23 +99,29 @@ export const CoverCard = memo(function CoverCard({
       )}
       <img
         src={coverUrl}
-        srcSet={`${coverUrl} 1x, ${coverUrl}?dpr=2 2x`}
         alt={comic.title}
         loading="lazy"
         decoding="async"
+        // React 19 supports the camelCase `fetchPriority` prop, but our
+        // current React version maps it to the lowercase HTML attribute.
+        // Let the browser pick the right priority; we used to force
+        // "low" which made the grid look stuck even though the response
+        // was already being served.
+        fetchPriority="auto"
         className={clsx(
-          "h-full w-full object-cover transition-all duration-500 ease-out",
-          coverState === "ready" ? "opacity-100 scale-100" : "opacity-0 scale-105",
+          "h-full w-full object-cover transition-opacity duration-300 ease-out",
+          coverState === "ready" ? "opacity-100" : "opacity-0",
         )}
         onError={(e) => {
           const el = e.currentTarget as HTMLImageElement;
-          // Retry up to 5 times with exponential backoff to handle
-          // transient failures (server overload, concurrent requests)
-          if (retry < 5) {
+          // 3 quick retries (200ms, 600ms, 1500ms) — the old backoff
+          // peaked at 6.4s which left covers stuck in skeleton state
+          // for far too long on a fresh library scan.
+          if (retry < 3) {
             if (retryTimerRef.current !== null) {
               window.clearTimeout(retryTimerRef.current);
             }
-            const delay = 400 * Math.pow(2, retry); // 400, 800, 1600, 3200, 6400
+            const delay = [200, 600, 1500][retry] ?? 1500;
             retryTimerRef.current = window.setTimeout(() => {
               retryTimerRef.current = null;
               setRetry((n) => n + 1);
@@ -149,28 +158,20 @@ export const CoverCard = memo(function CoverCard({
           Leído
         </div>
       )}
-      {/* Shine overlay on hover */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/0 to-white/0 group-hover:from-white/[0.02] group-hover:via-white/[0.06] group-hover:to-white/0 transition-all duration-500 pointer-events-none rounded-[1.25rem]" />
     </>
   );
 
   return (
-    <div
-      ref={tiltRef}
-      onMouseMove={onMouseMove}
-      onMouseLeave={onMouseLeave}
-      className={clsx("group relative animate-fade-in", sizeMap[size])}
-      style={{ transition: "transform 0.15s ease-out" }}
-    >
+    <div className={clsx("group relative animate-fade-in", sizeMap[size])}>
       {selectable ? (
         <button
           type="button"
           onClick={() => onToggleSelect?.(comic.id)}
           className={clsx(
-            "relative block aspect-[2/3] w-full overflow-hidden rounded-2xl bg-slate-900 ring-1 transition-all duration-300 ease-out",
+            "relative block aspect-[2/3] w-full overflow-hidden rounded-2xl bg-slate-900 ring-1 transition-shadow duration-200 ease-out",
             selected
-              ? "ring-2 ring-blue-500 shadow-2xl shadow-blue-500/30 scale-[1.03]"
-              : "ring-white/5 shadow-xl hover:ring-blue-500/50 hover:scale-[1.03] hover:-translate-y-1 hover:shadow-blue-500/20",
+              ? "ring-2 ring-blue-500 shadow-xl shadow-blue-500/25"
+              : "ring-white/5 shadow-md hover:ring-blue-500/40",
           )}
           aria-pressed={selected}
           aria-label={selected ? `Quitar selección de ${comic.title}` : `Seleccionar ${comic.title}`}
@@ -179,10 +180,10 @@ export const CoverCard = memo(function CoverCard({
           <span
             aria-hidden
             className={clsx(
-              "absolute top-2 right-2 grid h-7 w-7 place-items-center rounded-xl border text-[11px] font-bold backdrop-blur-md transition-all duration-300",
+              "absolute top-2 right-2 grid h-7 w-7 place-items-center rounded-xl border text-[11px] font-bold backdrop-blur-md transition-opacity duration-200",
               selected
-                ? "bg-blue-600 text-white border-blue-400 scale-110 shadow-lg shadow-blue-500/30"
-                : "bg-black/40 text-white border-white/20 opacity-0 group-hover:opacity-100 group-hover:scale-110",
+                ? "bg-blue-600 text-white border-blue-400 shadow-lg shadow-blue-500/30"
+                : "bg-black/40 text-white border-white/20 opacity-0 group-hover:opacity-100",
             )}
           >
             {selected ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg> : ""}
@@ -191,10 +192,9 @@ export const CoverCard = memo(function CoverCard({
       ) : (
         <Link
           to={`/read/${comic.id}`}
-          className="relative block aspect-[2/3] overflow-hidden rounded-[1.25rem] bg-slate-900 ring-1 ring-white/[0.07] shadow-lg shadow-black/40 transition-all duration-300 ease-out group-hover:scale-[1.04] group-hover:-translate-y-2 group-hover:ring-indigo-500/40 group-hover:shadow-2xl group-hover:shadow-indigo-500/10"
+          className="relative block aspect-[2/3] overflow-hidden rounded-2xl bg-slate-900 ring-1 ring-white/[0.07] shadow-md shadow-black/30 transition-shadow duration-200 ease-out group-hover:ring-white/15 group-hover:shadow-lg group-hover:shadow-black/40"
         >
           {coverInner}
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-blue-500/0 via-transparent to-blue-500/0 opacity-0 group-hover:opacity-100 group-hover:from-blue-500/5 group-hover:to-transparent transition-opacity duration-300 pointer-events-none" />
         </Link>
       )}
       {!selectable && (
@@ -217,10 +217,10 @@ export const CoverCard = memo(function CoverCard({
             <button
               onClick={(e) => { e.preventDefault(); onTogglePending(comic.id); }}
               className={clsx(
-                "absolute top-2 left-2 grid h-9 w-9 place-items-center rounded-xl backdrop-blur-md transition-all duration-300 z-10",
+                "absolute top-2 left-2 grid h-9 w-9 place-items-center rounded-xl backdrop-blur-md transition-opacity duration-200 z-10",
                 isPending
-                  ? "bg-blue-500/80 text-white scale-100 shadow-lg shadow-blue-500/30"
-                  : "bg-black/50 text-white opacity-0 group-hover:opacity-100 hover:bg-black/70 hover:scale-110",
+                  ? "bg-blue-500/80 text-white shadow-lg shadow-blue-500/30"
+                  : "bg-black/50 text-white opacity-0 group-hover:opacity-100 hover:bg-black/70",
               )}
               aria-label={isPending ? "Quitar de pendientes" : "Marcar como pendiente"}
             >
@@ -230,7 +230,22 @@ export const CoverCard = memo(function CoverCard({
               </svg>
             </button>
           )}
-          {/* Categories managed only in "Gestionar" modal */}
+          {/* Quick category button — opens the picker for this specific
+              comic so the user never has to enter "Gestionar" mode just
+              to add one comic to a category. */}
+          {onOpenCategoryPicker && (
+            <button
+              onClick={(e) => { e.preventDefault(); onOpenCategoryPicker(comic.id); }}
+              className="absolute bottom-2 right-2 grid h-9 w-9 place-items-center rounded-xl bg-black/50 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 hover:bg-black/70 transition-opacity duration-200 z-10"
+              aria-label="Añadir a una categoría"
+              title="Añadir a una categoría"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                <line x1="7" y1="7" x2="7.01" y2="7"/>
+              </svg>
+            </button>
+          )}
         </>
       )}
       <div className="mt-3 px-1 space-y-1.5">

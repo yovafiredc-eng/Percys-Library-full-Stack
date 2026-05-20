@@ -86,6 +86,11 @@ export interface SettingsDto {
   readerLowMemoryMode?: boolean;
   readerNightMode?: boolean;
   readerCinemaMode?: boolean;
+  // Library branding (logo + name) — customisable like a Discord server.
+  // libraryName "" means use the default ("Percy's Library"); libraryLogo
+  // is either "preset:<id>" or a data URL.
+  libraryName?: string;
+  libraryLogo?: string | null;
 }
 
 export interface BookmarkDto {

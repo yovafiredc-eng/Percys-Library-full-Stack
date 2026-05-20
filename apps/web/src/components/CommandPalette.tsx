@@ -71,13 +71,6 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         action: () => { navigate("/settings"); onClose(); },
       },
       {
-        id: "nav-online-library",
-        label: "Ir a Biblioteca Online",
-        shortcut: "G O",
-        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20"/></svg>,
-        action: () => { navigate("/online-library"); onClose(); },
-      },
-      {
         id: "action-scan",
         label: "Escanear biblioteca",
         icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M21.34 7.66A10 10 0 1 1 19.66 4.34"/></svg>,

@@ -24,6 +24,16 @@ const avatarSchema = z
   .max(AVATAR_MAX_LEN)
   .regex(/^(preset:[a-z0-9-]{1,32}|data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+)$/);
 
+// Library logo follows the same shape as the avatar: either a bundled
+// preset reference or an inlined image up to ~256KB. The branding stays
+// in the Settings row so it works the same way across devices for a
+// single owner.
+const LIBRARY_LOGO_MAX_LEN = 350_000;
+const libraryLogoSchema = z
+  .string()
+  .max(LIBRARY_LOGO_MAX_LEN)
+  .regex(/^(preset:[a-z0-9-]{1,32}|data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+)$/);
+
 const DEFAULT_SETTINGS_PATCH = {
   theme: "dark",
   accentColor: "#7c5cff",
@@ -50,7 +60,7 @@ const DEFAULT_SETTINGS_PATCH = {
   animHoverParallax: true,
   animHudFades: true,
   animMicroInteractions: true,
-  animBrandShimmer: true,
+  animBrandShimmer: false,
   animIntensity: 100,
   readerPageGap: 8,
   readerMaxWidth: 900,
@@ -64,6 +74,8 @@ const DEFAULT_SETTINGS_PATCH = {
   statsRange: "30d",
   readerBrightness: 100,
   readerContrast: 100,
+  libraryName: "",
+  libraryLogo: null,
 } as const;
 
 const settingsSchema = z.object({
@@ -123,6 +135,10 @@ const settingsSchema = z.object({
   statsRange: z.enum(["7d", "30d", "90d", "1y", "all"]).optional(),
   readerBrightness: z.number().int().min(20).max(200).optional(),
   readerContrast: z.number().int().min(20).max(200).optional(),
+  // Branding (logo + library name). An empty string for the name means
+  // "use the default" so the client can fall back cleanly.
+  libraryName: z.string().max(40).optional(),
+  libraryLogo: libraryLogoSchema.nullable().optional(),
 });
 
 settingsRouter.put(
@@ -172,8 +188,10 @@ settingsRouter.post(
           animHoverParallax: true,
           animHudFades: true,
           animMicroInteractions: true,
-          animBrandShimmer: true,
+          animBrandShimmer: false,
           statsRange: "30d",
+          libraryName: "",
+          libraryLogo: null,
         },
       }),
     ]);
