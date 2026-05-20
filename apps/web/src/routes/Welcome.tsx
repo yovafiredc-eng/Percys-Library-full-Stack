@@ -27,15 +27,6 @@ const ACCENT_PALETTE = [
   "#84cc16",
 ] as const;
 
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error);
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.readAsDataURL(file);
-  });
-}
-
 type Step = 0 | 1 | 2;
 
 export function Welcome() {
@@ -44,7 +35,6 @@ export function Welcome() {
   const load = useSettingsStore((s) => s.load);
   const push = useToasts((s) => s.push);
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [step, setStep] = useState<Step>(0);
   const [first, setFirst] = useState("");
@@ -313,41 +303,15 @@ export function Welcome() {
                     </div>
                     <AvatarPresetGrid value={avatar} onChange={setAvatar} />
                     <div className="flex flex-wrap items-center gap-2">
-                      <button type="button" className="pl-btn text-xs" onClick={() => fileInputRef.current?.click()}>
-                        Subir foto
-                      </button>
                       {avatar && (
                         <button type="button" className="pl-btn text-xs" onClick={() => setAvatar(null)}>
                           Usar iniciales
                         </button>
                       )}
                       <span className="text-[9px] text-slate-500">
-                        {initials ? `Vista: ${initials}` : "Se genera con nombre y apellido"} · PNG/JPG/WEBP · máx 250KB
+                        {initials ? `Vista: ${initials}` : "Se genera con nombre y apellido"} · podrás personalizar el logo de la biblioteca en Ajustes → Branding
                       </span>
                     </div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        if (file.size > 250_000) {
-                          push("Imagen muy grande (máx 250KB)", "error");
-                          e.target.value = "";
-                          return;
-                        }
-                        try {
-                          const data = await fileToDataUrl(file);
-                          setAvatar(data);
-                        } catch {
-                          push("No se pudo leer", "error");
-                        } finally {
-                          e.target.value = "";
-                        }
-                      }}
-                    />
                   </div>
                 </div>
               )}
